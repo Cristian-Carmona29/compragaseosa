@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turno Gaseosa 🥤</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --card: #161921;
+    --accent: #00e5a0;
+    --accent2: #ff5e5e;
+    --text: #e8eaf0;
+    --muted: #5a5f70;
+    --border: #252933;
+    --done-bg: #0d1f17;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 60% 40% at 80% 10%, rgba(0,229,160,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 10% 80%, rgba(255,94,94,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(0,229,160,0.3);
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .today-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 18px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 20px;
+  }
+
+  .today-badge span {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* Status banner */
+  .status-banner {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    transition: all 0.3s;
+  }
+
+  .status-banner.ok {
+    border-color: rgba(0,229,160,0.3);
+    background: rgba(0,229,160,0.05);
+  }
+
+  .status-banner.warn {
+    border-color: rgba(255,94,94,0.3);
+    background: rgba(255,94,94,0.05);
+  }
+
+  .status-icon { font-size: 22px; }
+  .status-text { flex: 1; line-height: 1.4; }
+  .status-text strong { display: block; font-size: 15px; }
+  .status-text small { color: var(--muted); font-size: 12px; }
+
+  /* Player cards */
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .player-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s ease;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .player-card:not(.done):not(.blocked) {
+    cursor: pointer;
+  }
+
+  .player-card:not(.done):not(.blocked):hover {
+    border-color: rgba(0,229,160,0.4);
+    background: rgba(0,229,160,0.04);
+    transform: translateX(4px);
+  }
+
+  .player-card:not(.done):not(.blocked):active {
+    transform: translateX(2px) scale(0.99);
+  }
+
+  .player-card.done {
+    background: var(--done-bg);
+    border-color: rgba(0,229,160,0.2);
+  }
+
+  .player-card.done::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 3px 0 0 3px;
+  }
+
+  .player-card.blocked {
+    opacity: 0.4;
+  }
+
+  .avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+  }
+
+  .player-card.done .avatar {
+    background: rgba(0,229,160,0.12);
+    color: var(--accent);
+    border-color: rgba(0,229,160,0.3);
+  }
+
+  .player-info {
+    flex: 1;
+  }
+
+  .player-name {
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s;
+  }
+
+  .player-card.done .player-name {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .player-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .player-card.done .player-meta {
+    color: var(--accent);
+    opacity: 0.8;
+  }
+
+  .check-icon {
+    font-size: 20px;
+    opacity: 0;
+    transition: all 0.3s;
+  }
+
+  .player-card.done .check-icon {
+    opacity: 1;
+  }
+
+  .tap-hint {
+    font-size: 11px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    white-space: nowrap;
+    transition: all 0.3s;
+  }
+
+  .player-card:not(.done):not(.blocked):hover .tap-hint {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Cycle count */
+  .cycle-info {
+    text-align: center;
+    margin-top: 28px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .cycle-info strong {
+    color: var(--text);
+  }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    padding: 20px;
+  }
+
+  .modal-bg.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 32px 28px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .modal-bg.active .modal {
+    transform: scale(1) translateY(0);
+  }
+
+  .modal-emoji { font-size: 48px; margin-bottom: 16px; }
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .modal-body {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+
+  .modal-body strong { color: var(--text); font-size: 16px; }
+
+  .btn-group { display: flex; gap: 10px; }
+
+  .btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-confirm {
+    background: var(--accent);
+    color: #0d0f14;
+  }
+
+  .btn-confirm:hover { background: #00ffb3; transform: translateY(-1px); }
+  .btn-confirm:active { transform: translateY(0); }
+
+  .btn-cancel {
+    background: var(--border);
+    color: var(--muted);
+  }
+
+  .btn-cancel:hover { background: #2e3340; color: var(--text); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent);
+    color: #0d0f14;
+    padding: 12px 24px;
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 14px;
+    z-index: 200;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Weekend */
+  .weekend-notice {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .weekend-notice .big { font-size: 36px; display: block; margin-bottom: 8px; }
+  .weekend-notice strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">GASEOSA 🥤</div>
+    <div class="subtitle">Turno del día</div>
+    <div class="today-badge">
+      <div class="dot"></div>
+      <span id="today-label">Cargando...</span>
+    </div>
+  </header>
+
+  <div id="status-banner" class="status-banner"></div>
+  <div id="main-content"></div>
+  <div class="cycle-info" id="cycle-info"></div>
+</div>
+
+<!-- Modal confirmación -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-emoji">🥤</div>
+    <div class="modal-title">¿Confirmás?</div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="btn-group">
+      <button class="btn btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-confirm" onclick="confirmBuy()">¡Sí, compré!</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const NAMES = ["Johan", "Leandro", "Wilman", "Manuel", "Cristian", "Tique"];
+const DAYS_ES = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const STORAGE_KEY = "gaseosa_v2";
+
+let pendingIndex = null;
+
+function getState() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { records: [], cycle: 1 };
+  } catch { return { records: [], cycle: 1 }; }
+}
+
+function saveState(s) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+}
+
+function getTodayStr() {
+  const d = new Date();
+  return d.toISOString().slice(0,10); // YYYY-MM-DD
+}
+
+function getTodayInfo() {
+  const d = new Date();
+  const day = d.getDay(); // 0=Dom, 6=Sab
+  const name = DAYS_ES[day];
+  const date = d.toLocaleDateString('es-CO', { day:'numeric', month:'long' });
+  return { day, name, date };
+}
+
+function isWeekend() {
+  const d = new Date().getDay();
+  return d === 0 || d === 6;
+}
+
+function render() {
+  const state = getState();
+  const { day, name, date } = getTodayInfo();
+  const todayStr = getTodayStr();
+
+  document.getElementById('today-label').textContent = `${name}, ${date}`;
+
+  const main = document.getElementById('main-content');
+  const banner = document.getElementById('status-banner');
+  const cycleInfo = document.getElementById('cycle-info');
+
+  // Weekend mode
+  if (isWeekend()) {
+    banner.className = 'status-banner';
+    banner.innerHTML = `<div class="status-icon">😴</div><div class="status-text"><strong>Fin de semana</strong><small>El turno se retoma el lunes</small></div>`;
+    main.innerHTML = `<div class="weekend-notice"><span class="big">🎉</span><strong>¡Descansen!</strong><br>No hay turno los sábados y domingos.</div>`;
+    cycleInfo.textContent = '';
+    return;
+  }
+
+  // Check if someone already bought today
+  const todayRecord = state.records.find(r => r.date === todayStr);
+
+  if (todayRecord) {
+    banner.className = 'status-banner ok';
+    banner.innerHTML = `<div class="status-icon">✅</div><div class="status-text"><strong>${todayRecord.name} compró hoy</strong><small>${DAYS_ES[new Date(todayRecord.date + 'T12:00:00').getDay()]}, ${new Date(todayRecord.date + 'T12:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'long'})}</small></div>`;
+  } else {
+    banner.className = 'status-banner warn';
+    banner.innerHTML = `<div class="status-icon">⏳</div><div class="status-text"><strong>Nadie ha comprado hoy</strong><small>Tocá tu nombre si fuiste vos</small></div>`;
+  }
+
+  // Build the list per cycle
+  // Count how many full cycles completed
+  const cycleSize = NAMES.length;
+  const totalRecords = state.records.length;
+  const currentCycle = Math.floor(totalRecords / cycleSize) + 1;
+  const posInCycle = totalRecords % cycleSize;
+
+  // Records in current cycle
+  const currentCycleRecords = state.records.slice((currentCycle - 1) * cycleSize);
+  const doneNames = currentCycleRecords.map(r => r.name);
+
+  let html = '<div class="list">';
+  NAMES.forEach((name, i) => {
+    const isDone = doneNames.includes(name);
+    const record = currentCycleRecords.find(r => r.name === name);
+    const isBlocked = !isDone && !!todayRecord; // can't buy if someone already bought today
+
+    const meta = isDone
+      ? `Compró el ${DAYS_ES[new Date(record.date + 'T12:00:00').getDay()]} ${new Date(record.date + 'T12:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'long'})}`
+      : isBlocked ? 'Ya se registró hoy' : 'Toca para registrar';
+
+    html += `
+      <div class="player-card ${isDone ? 'done' : ''} ${isBlocked ? 'blocked' : ''}"
+           ${!isDone && !isBlocked ? `onclick="askConfirm(${i})"` : ''}>
+        <div class="avatar">${name[0]}</div>
+        <div class="player-info">
+          <div class="player-name">${name}</div>
+          <div class="player-meta">${meta}</div>
+        </div>
+        ${isDone
+          ? '<div class="check-icon">✅</div>'
+          : isBlocked
+            ? '<div class="check-icon" style="opacity:0.3">🔒</div>'
+            : '<div class="tap-hint">Tocar</div>'
+        }
+      </div>`;
+  });
+  html += '</div>';
+  main.innerHTML = html;
+
+  cycleInfo.innerHTML = `Vuelta <strong>#${currentCycle}</strong> · ${doneNames.length} de ${cycleSize} completados`;
+}
+
+function askConfirm(index) {
+  const todayRecord = getState().records.find(r => r.date === getTodayStr());
+  if (todayRecord) return;
+
+  pendingIndex = index;
+  const { name, date } = getTodayInfo();
+  document.getElementById('modal-body').innerHTML =
+    `<strong>${NAMES[index]}</strong> compró la gaseosa hoy<br><small>${name}, ${date}</small><br><br>Esta acción no se puede deshacer.`;
+  document.getElementById('modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+  pendingIndex = null;
+}
+
+function confirmBuy() {
+  if (pendingIndex === null) return;
+  const state = getState();
+  const todayStr = getTodayStr();
+
+  // Double-check no duplicate
+  if (state.records.find(r => r.date === todayStr)) {
+    showToast('Ya se registró una compra hoy ⛔');
+    closeModal();
+    return;
+  }
+
+  state.records.push({ name: NAMES[pendingIndex], date: todayStr });
+  saveState(state);
+  closeModal();
+  render();
+  showToast(`¡${NAMES[pendingIndex]} registrado! 🥤`);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Close modal clicking outside
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+render();
+</script>
+</body>
+</html>
